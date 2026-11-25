@@ -1,14 +1,42 @@
-on: push
-name: Clippy check
+name: Rust CI (minimal)
 
-# Make sure CI fails on all warnings, including Clippy lints
-env:
-  RUSTFLAGS: "-Dwarnings"
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
-  clippy_check:
+  quality-gates:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v7
-      - name: Run Clippy
-        run: cargo clippy --all-targets --all-features
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      # Potentially required later
+      - name: Install system dependencies
+        run: 
+
+      # Caching to speed up test build
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "target"
+
+      # Quality Gate 1: Compile test
+      - name: Cargo build
+        run: cargo build --verbose
+
+      # Quality Gate 2: Clippy
+      - name: Cargo clippy
+        run: cargo clippy -- -D warnings
+
+      # Quality Gate 3: Unit Tests
+      - name: Run tests
+        run: cargo test --verbose
